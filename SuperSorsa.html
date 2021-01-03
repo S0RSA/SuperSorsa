@@ -1,0 +1,461 @@
+<html><html>
+
+<head>
+<meta charset="UTF-8">
+<script>
+
+
+var nimi = "Supersorsa";
+var näytönleveys;
+var näytönkorkeus;
+var ctx;
+var zoomaus = 3; // monikokertainen zoomaus
+
+var sorsakuva;
+var sorsakuvaVasen;
+
+var pilvitausta
+
+var ruohikko1
+var ruohikko2
+var ruohikko3;
+var ruohikko4;
+var ruohikko5;
+var ruohikko6;
+var ruohikko7;
+var ruohikko8;
+var ruohikko9;
+
+var tiilenkoko = 16;
+
+var kuvialataamatta;
+var painovoima = 0.1;
+
+// pelin objektit
+
+var sorsa = {};
+var vihollinen = {};
+var seinät = [];
+
+var framenumero = 0;
+var maksiminopeus = 3;
+var ohjausylös = 0;
+var ohjausalas = 0;
+var ohjausoikea = 0;
+var ohjausvasen = 0;
+var animaatio = 0;
+
+function nappipainettu(mikä) {
+   var nappi = mikä.key;
+   //console.log("painettu " + nappi);
+   if (nappi == 'a') {
+     ohjausvasen = -0.5;
+   } else if (nappi == 'd') {
+     ohjausoikea = 0.5;
+   } else if (nappi == ' ' || nappi == 'w') {
+     if (sorsa.tasolla) {
+        ohjausylös = -30;
+        console.log("boing");
+     } else {
+     //   ohjausylös = -3;
+     }
+   } else if (nappi == 's') {
+     ohjausalas = 1;
+   } else {
+    console.log(mikä);
+   }
+}
+
+function nappiylös(mikä) {
+  var nappi = mikä.key;
+  if (nappi == 'a') {
+    ohjausvasen = 0;
+  } else if (nappi == 'd') {
+    ohjausoikea = 0;
+  } else if (nappi == ' ' || nappi == 'w') {
+    ohjausylös = 0;
+  } else if (nappi == 's') {
+    ohjausalas = 0;
+  }
+  //console.log("irrotettu " + nappi)
+}
+
+function piirrä() {
+   console.log("terve ollaan täällä");
+   for(var a = 0; a < näytönkorkeus; a += 6) {
+     ctx.moveTo(0,0);
+     ctx.lineTo(näytönleveys,a);
+     ctx.stroke();
+   }
+}
+
+function kuvaladattu() {
+   kuvialataamatta = kuvialataamatta - 1;
+   if (kuvialataamatta == 0) {
+      päivitäpeli();
+   }
+}
+
+function lataakuvat() {
+   kuvialataamatta = 10;
+
+   pilvitausta = new Image();
+   pilvitausta.onload = kuvaladattu;
+   pilvitausta.src = "pilviä.png";
+
+   ruohikko1 = new Image();
+   ruohikko1.onload = kuvaladattu;
+   ruohikko1.src = "ruohikot/ruohikko1.png";
+
+   ruohikko2 = new Image();
+   ruohikko2.onload = kuvaladattu;
+   ruohikko2.src = "ruohikot/ruohikko2.png";
+
+   ruohikko3 = new Image();
+   ruohikko3.onload = kuvaladattu;
+   ruohikko3.src = "ruohikot/ruohikko3.png";
+
+   ruohikko4 = new Image();
+   ruohikko4.onload = kuvaladattu;
+   ruohikko4.src = "ruohikot/ruohikko4.png";
+
+   ruohikko5 = new Image();
+   ruohikko5.onload = kuvaladattu;
+   ruohikko5.src = "ruohikot/ruohikko5.png";
+
+   ruohikko6 = new Image();
+   ruohikko6.onload = kuvaladattu;
+   ruohikko6.src = "ruohikot/ruohikko6.png";
+
+   ruohikko7 = new Image();
+   ruohikko7.onload = kuvaladattu;
+   ruohikko7.src = "ruohikot/ruohikko7.png";
+
+   ruohikko8 = new Image();
+   ruohikko8.onload = kuvaladattu;
+   ruohikko8.src = "ruohikot/ruohikko8.png";
+
+   ruohikko9 = new Image();
+   ruohikko9.onload = kuvaladattu;
+   ruohikko9.src = "ruohikot/ruohikko9.png";
+
+   sorsakuva = new Image();
+   sorsakuva.onload = kuvaladattu;
+   sorsakuva.src = "sorsa/SuperSorsa1.png";
+
+   sorsakuvaVasen = new Image();
+   sorsakuvaVasen.onload = kuvaladattu;
+   sorsakuvaVasen.src = "sorsa/SuperSorsa2.png";
+
+
+}
+
+
+function piirräneliö(x, y, leveys, korkeus, väri) {
+   ctx.fillStyle = väri;
+   ctx.fillRect(x, y, leveys, korkeus);
+}
+
+function piirräNeliöReunat(x, y, leveys, korkeus, väri) {
+   ctx.strokeStyle = väri;
+   ctx.strokeRect(x, y, leveys, korkeus);
+}
+
+function piirräkuva(kuva, x, y) {
+   ctx.drawImage(kuva, x, y);
+}
+
+function piirräsprite(kuva, x, y, spritenleveys, spritenkorkeus, monesko) {
+   ctx.drawImage(kuva, monesko * spritenleveys, 0, spritenleveys, spritenkorkeus, x, y, spritenleveys, spritenkorkeus);
+}
+
+function tyhjennänäyttö() {
+   piirräneliö(0, 0, näytönleveys, näytönkorkeus, "#000033");
+}
+
+function rajoitanopeus(nopeus) {
+  if (nopeus > maksiminopeus) {
+    return maksiminopeus;
+  } else  if (nopeus < -1 * maksiminopeus) {
+    return -1 * maksiminopeus;
+  } else {
+    return nopeus;
+  }
+}
+
+function piirrävihollinen() {
+  piirräneliö(vihollinen.x, vihollinen.y, vihollinen.leveys, vihollinen.korkeus, '#ff0000');
+}
+
+
+
+
+function piirräSeinät() {
+   seinät.forEach(function(seinä) {
+      let väri = '#00BB00';
+      let piirtokohta = seinä.x + tiilenkoko;
+      //if (seinä.blokkaaHypyn) {
+      //   väri = '#0000BB';
+      //}
+      //piirräNeliöReunat(seinä.x, seinä.y, seinä.leveys, seinä.korkeus, väri);
+
+      // piirretään vasen tiili
+      piirräkuva(ruohikko1, seinä.x, seinä.y);
+      // piirretään keskimmäiset tiilet
+      while(piirtokohta < seinä.x + seinä.leveys - tiilenkoko) {
+        piirräkuva(ruohikko2, piirtokohta, seinä.y);
+        piirtokohta = piirtokohta + tiilenkoko;
+      }
+      piirräkuva(ruohikko3, seinä.x + seinä.leveys - tiilenkoko, seinä.y);
+   });
+}
+
+function piirräSorsaOikea() { //sorsan animaatio oikealle
+   if (sorsa.dy < 0) { // sorsa hyppää ylös
+     piirräsprite(sorsakuva, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, 14);
+   } else if (sorsa.dy > 0) { // sorsa tippuu
+     piirräsprite(sorsakuva, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, 13);
+   } else if (sorsa.dx == 0) {
+     let alku1 = 0; // vika on 12
+     let kuvia1 = alku1 - 4;
+     let monesko1 = alku1 + (framenumero >> 3) % kuvia1;
+     piirräsprite(sorsakuva, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, monesko1);
+   } else {
+     let alku2 = 8; // vika on 12
+     let kuvia2 = alku2 - 13;
+     let monesko2 = alku2 + (framenumero >> 2) % kuvia2;
+     piirräsprite(sorsakuva, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, monesko2);
+   }
+}
+
+function piirräSorsaVasen() { //sorsan animaatio vasemmalle
+   if (sorsa.dy < 0) { // sorsa hyppää ylös
+     piirräsprite(sorsakuvaVasen, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, 14);
+   } else if (sorsa.dy > 0) { // sorsa tippuu
+     piirräsprite(sorsakuvaVasen, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, 13);
+   } else if (sorsa.dx == 0) {
+     let alku1 = 0; // vika on 12
+     let kuvia1 = alku1 - 4;
+     let monesko1 = alku1 + (framenumero >> 3) % kuvia1;
+     piirräsprite(sorsakuvaVasen, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, monesko1);
+   } else {
+     let alku2 = 8; // vika on 12
+     let kuvia2 = alku2 - 13;
+     let monesko2 = alku2 + (framenumero >> 2) % kuvia2;
+     piirräsprite(sorsakuvaVasen, sorsa.x, sorsa.y, sorsa.leveys, sorsa.korkeus, monesko2);
+   }
+}
+
+function piirräSorsa() {  //sorsan suunta vaihtuu
+
+  if(sorsa.dx > 0){
+    sorsa.suunta = 1;
+  } else if(sorsa.dx < 0) {
+    sorsa.suunta = -1;
+  }
+
+  if(sorsa.suunta > 0){
+    piirräSorsaOikea();
+  } else if(sorsa.suunta < 0) {
+    piirräSorsaVasen();
+  }
+}
+
+
+function päivitänäyttö() {
+
+  tyhjennänäyttö();
+
+  //piirräkuva(tausta, 0, 0);
+  //piirräkuva(kaukaisetvuoret, 0, 0);
+  //piirräkuva(vuoristo, 0, 0);
+  //piirräkuva(simpukat, 0, 0);
+  piirräkuva(pilvitausta, 0, 0);
+
+
+
+  //piirrävihollinen();
+  piirräSeinät();
+
+  piirräSorsa();
+
+
+
+
+}
+
+// Onko piste vasemman ja oikean välissä?
+function osuuko1d(vasen, piste, oikea) {
+  return (vasen <= piste) && (piste <= oikea);
+}
+
+// Osuuko koskeeko viiva xl:stä xr:ään viivana x2l:stä x2r:ään?
+function osuukoViiva(xl, xr, x2l, x2r) {
+  if (x2l < xl) {
+     return (xl <= x2r);
+  } else {
+     return (x2l <= xr);
+  }
+}
+
+// Onko pistex pistey neliön sisällä, joka alkaa neliöx neliöy:stä ja sillä annettu leveys ja korkeus?
+function osuuko2d(pistex, pistey, neliöx, neliöy, leveys, korkeus) {
+  return osuuko1d(neliöx, pistex, neliöx + leveys) && osuuko1d(neliöy, pistey, neliöy + korkeus);
+}
+
+
+function osuTasoon(asia, taso) {
+   // jos asia on putoamassa (y kasvaa näytöllä)
+   if (asia.dy > 0) {
+      var alareuna = asia.y + asia.korkeus;
+      if (alareuna <= taso.y && alareuna + asia.dy > taso.y) {
+         if (osuukoViiva(asia.x, asia.x + asia.leveys, taso.x, taso.x + taso.leveys)) {
+            asia.dy = 0; // kumoaa liikkeen
+            asia.y = taso.y - asia.korkeus;
+            asia.tasolla = true;
+         }
+      }
+   }
+   // jos asia on nousemassa (y pienenee)
+   if (asia.dy < 0 && taso.blokkaaHypyn) {
+      var yläreuna = asia.y;
+      if (yläreuna >= taso.y + taso.korkeus && yläreuna + asia.dy < taso.y + taso.korkeus) {
+         if (osuukoViiva(asia.x, asia.x + asia.leveys, taso.x, taso.x + taso.leveys)) {
+            asia.dy = 0; // kumoaa liikkeen
+            asia.y = taso.y + taso.korkeus;
+         }
+      }
+   }
+}
+
+function tarkastaosumat() {
+   seinät.forEach(function (seinä) {
+      osuTasoon(sorsa, seinä);
+   });
+}
+
+function päivitäpeli() {
+   framenumero = framenumero + 1;
+
+    sorsa.dy += painovoima;
+    if (ohjausvasen == 0 && ohjausoikea == 0) {
+      if (sorsa.dx > 0) {
+          sorsa.dx -= 1;
+
+          if (sorsa.dx < 0) {
+            sorsa.dx = 0;
+          }
+      } else if (sorsa.dx < 0) {
+           sorsa.dx += 1;
+
+           if(sorsa.dx > 0) {
+             sorsa.dx = 0;
+           }
+      }
+    }
+
+    sorsa.dx = rajoitanopeus(sorsa.dx + ohjausvasen + ohjausoikea);
+    sorsa.dy = rajoitanopeus(sorsa.dy + ohjausylös + ohjausalas);
+
+    sorsa.tasolla = false;
+    tarkastaosumat(); // saadaan tieto onko tasolla
+
+    sorsa.x = sorsa.x + sorsa.dx;
+    sorsa.y = sorsa.y + sorsa.dy;
+
+   if (sorsa.x < 0) {
+     sorsa.x = 0;
+   }
+   if (sorsa.y + sorsa.korkeus > näytönkorkeus) {
+     sorsa.y = 30;
+     sorsa.x = 140;
+     // sorsa tippuu ulos näytöltä
+   }
+   if (sorsa.x + sorsa.leveys > näytönleveys) {
+     sorsa.y = 30;
+     sorsa.x = 140;
+     // sorsa lentää sivulle ulos näytöltä
+   }
+
+
+   päivitänäyttö();
+
+   // debuggaustiedot
+   if (sorsa.tasolla) {
+      piirräneliö(290, 0, 10, 10, '#00ff00');
+   } else {
+      piirräneliö(290, 0, 10, 10, '#ff0000');
+   }
+
+   window.requestAnimationFrame(päivitäpeli);
+}
+
+// x ja y on vasen ylänurkka
+// leveys ja korkeus lähtien x.y:stä
+// blokkaaHypyn = true jos blokkaa, false muuten
+function lisääSeinä(x, y, leveys, korkeus, blokkaa) {
+   var seinä = {};
+   seinä.x = x;
+   seinä.y = y;
+   seinä.leveys = leveys;
+   seinä.korkeus = korkeus;
+   seinä.blokkaaHypyn = blokkaa; // true tai false
+   seinät.push(seinä);
+}
+function lisääTiiliSeinä(x, y, leveys, korkeus, blokkaa) {
+  lisääSeinä(x * tiilenkoko, y * tiilenkoko, leveys * tiilenkoko, korkeus * tiilenkoko, blokkaa)
+}
+
+function aloita() {
+   var c = document.getElementById("SorsaPeli");
+   näytönleveys = c.width / zoomaus;
+   näytönkorkeus = c.height / zoomaus;
+
+   //lisääSeinä(x-paikka, y-paikka, leveys, korkeus, true);
+
+
+
+   lisääTiiliSeinä(6, 12, 16, 3, true)
+
+   sorsa.x = 140;
+   sorsa.y = 0;
+   sorsa.dx = 0;
+   sorsa.dy = 0;
+   sorsa.leveys = 24;
+   sorsa.korkeus = 24;
+   sorsa.suunta = 1;
+
+   vihollinen.x = 100;
+   vihollinen.y = 100;
+   vihollinen.leveys = 20;
+   vihollinen.korkeus = 10;
+
+
+   ctx = c.getContext("2d");
+   ctx.imageSmoothingEnabled = false;
+   ctx.scale(zoomaus, zoomaus);
+
+   document.addEventListener('keydown', nappipainettu);
+   document.addEventListener('keyup', nappiylös);
+
+   lataakuvat();
+}
+
+</script>
+
+</head>
+
+<body style="text-align: center" bgcolor="#000000" onload="aloita()">
+
+<canvas
+  id="SorsaPeli"
+  style="display: inline"
+  width=1440
+  height="810">d
+
+</canvas>
+
+</body>
+
+</html>
+</html>
